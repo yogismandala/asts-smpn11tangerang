@@ -2847,10 +2847,10 @@
 
                     // 1. Dekode dan Parsing Kunci Jawaban
                     try {
-                        const decodedKey = atob(question.security_token || "");
+                        const decodedKey = decodeURIComponent(escape(atob(question.security_token || "")));
                         answerKey = JSON.parse(decodedKey);
                     } catch {
-                        answerKey = atob(question.security_token || "");
+                        answerKey = decodeURIComponent(escape(atob(question.security_token || "")));
                     }
 
                     // 2. Validasi: Jangan hitung jika siswa tidak menjawab
