@@ -52,6 +52,22 @@
                 padding: 2px !important;
             }
 
+            /* Ikon tombol Akar / Pangkat / Pecahan di toolbar Quill (soal & opsi jawaban) */
+            .ql-toolbar.ql-snow button.ql-sqrt,
+            .ql-toolbar.ql-snow button.ql-power,
+            .ql-toolbar.ql-snow button.ql-fraction {
+                width: auto;
+                padding: 3px 6px !important;
+                font-weight: bold;
+                font-family: 'Cambria Math', serif;
+            }
+            .ql-toolbar.ql-snow button.ql-sqrt::before { content: "√"; font-size: 16px; }
+            .ql-toolbar.ql-snow button.ql-power::before { content: "xⁿ"; font-size: 13px; }
+            .ql-toolbar.ql-snow button.ql-fraction::before { content: "a/b"; font-size: 11px; }
+            .ql-toolbar.ql-snow button.ql-sqrt:hover,
+            .ql-toolbar.ql-snow button.ql-power:hover,
+            .ql-toolbar.ql-snow button.ql-fraction:hover { color: #06c; }
+
             /* Efek Glassmorphism untuk Form Login */
             .glass-panel {
                 background: rgba(255, 255, 255, 0.2); /* Transparansi putih */
@@ -5104,7 +5120,7 @@
                         </div>
                     `,
                     didOpen: () => {
-                        const configMini = { modules: { toolbar: [['bold', 'italic', 'underline'], [{ 'align': [] }], ['image', 'formula'], [{ 'list': 'ordered'}, { 'list': 'bullet' }], ['clean']] }, theme: 'snow' };
+                        const configMini = { modules: { toolbar: { container: [['bold', 'italic', 'underline'], [{ 'align': [] }], ['image', 'formula'], ['sqrt', 'power', 'fraction'], [{ 'list': 'ordered'}, { 'list': 'bullet' }], ['clean']], handlers: mathToolbarHandlers } }, theme: 'snow' };
 
                         window.editEditors = {
                             question: new Quill('#edit-q-text', configMini),
@@ -5385,7 +5401,7 @@
                     `,
                     didOpen: () => {
                         const config = { 
-                            modules: { toolbar: [['bold', 'italic', 'underline'], [{ 'align': [] }], ['image', 'formula'], [{ 'list': 'ordered'}, { 'list': 'bullet' }], ['clean']] }, 
+                            modules: { toolbar: { container: [['bold', 'italic', 'underline'], [{ 'align': [] }], ['image', 'formula'], ['sqrt', 'power', 'fraction'], [{ 'list': 'ordered'}, { 'list': 'bullet' }], ['clean']], handlers: mathToolbarHandlers } }, 
                             theme: 'snow', 
                             placeholder: 'Ketik di sini...' 
                         };
@@ -5566,6 +5582,35 @@
                 }
             }
 
+            // TOMBOL RUMUS DI TOOLBAR QUILL: Akar, Pangkat, Pecahan.
+            function insertMathTemplate(quillInstance, buildLatex) {
+                const range = quillInstance.getSelection(true) || { index: quillInstance.getLength(), length: 0 };
+                const selectedText = range.length > 0 ? quillInstance.getText(range.index, range.length) : '';
+                const { latex, cursorOffset } = buildLatex(selectedText);
+                quillInstance.deleteText(range.index, range.length, 'user');
+                quillInstance.insertText(range.index, latex, 'user');
+                quillInstance.setSelection(range.index + cursorOffset, 0, 'user');
+            }
+
+            const mathToolbarHandlers = {
+                sqrt: function () {
+                    insertMathTemplate(this.quill, (sel) => {
+                        const latex = sel ? `$\\sqrt{${sel}}$` : `$\\sqrt{}$`;
+                        return { latex, cursorOffset: sel ? latex.length : latex.length - 2 };
+                    });
+                },
+                power: function () {
+                    const current = this.quill.getFormat();
+                    this.quill.format('script', current.script === 'super' ? false : 'super');
+                },
+                fraction: function () {
+                    insertMathTemplate(this.quill, (sel) => {
+                        const latex = sel ? `$\\frac{${sel}}{}$` : `$\\frac{}{}$`;
+                        return { latex, cursorOffset: latex.length - 2 };
+                    });
+                }
+            };
+
             // ==========================================================================
             // KONVERSI RUMUS WORD (OMML) -> LATEX, supaya rumus di soal Word ikut terbaca.
             // Dipakai sebagai pengganti mammoth khusus untuk file .docx (mammoth tidak
@@ -5630,6 +5675,22 @@
                         const isHidden = !degText || (degHideEl && degHideEl.getAttribute('m:val') !== '0');
                         const inner = e ? ommlChildrenToLatex(e) : '';
                         return isHidden ? `\\sqrt{${inner}}` : `\\sqrt[${degText}]{${inner}}`;
+                    }
+                    case 'm:d': {
+                        // Objek "Bracket" Word: karakter kurung disimpan di atribut m:val, bukan teks.
+                        const dPr = directChild(node, 'm:dPr');
+                        let begChr = '(', endChr = ')';
+                        if (dPr) {
+                            const begEl = directChild(dPr, 'm:begChr');
+                            const endEl = directChild(dPr, 'm:endChr');
+                            if (begEl) begChr = begEl.getAttribute('m:val') ?? begChr;
+                            if (endEl) endChr = endEl.getAttribute('m:val') ?? endChr;
+                        }
+                        const safeDelim = (c) => (c === '' ? '.' : (c === '{' || c === '}' ? '\\' + c : c));
+                        const parts = Array.from(node.children)
+                            .filter(c => c.tagName === 'm:e')
+                            .map(e => ommlChildrenToLatex(e));
+                        return `\\left${safeDelim(begChr)}${parts.join(',\\ ')}\\right${safeDelim(endChr)}`;
                     }
                     default:
                         // elemen pembungkus yang tidak dikenal (mis. m:e langsung) -> masuk ke isinya
@@ -6382,7 +6443,7 @@
                     `,
                     didOpen: () => {
                         const config = { 
-                            modules: { toolbar: [['bold', 'italic', 'underline'], [{ 'align': [] }], ['image', 'formula'], [{ 'list': 'ordered'}, { 'list': 'bullet' }], ['clean']] }, 
+                            modules: { toolbar: { container: [['bold', 'italic', 'underline'], [{ 'align': [] }], ['image', 'formula'], ['sqrt', 'power', 'fraction'], [{ 'list': 'ordered'}, { 'list': 'bullet' }], ['clean']], handlers: mathToolbarHandlers } }, 
                             theme: 'snow', 
                             placeholder: 'Ketik di sini...' 
                         };
