@@ -2450,6 +2450,8 @@
                 } else if (typeof currentAnswer === 'string' && currentAnswer.trim() !== "") {
                     selectedOptions = currentAnswer.split(',');
                 }
+
+                const validOptions = question.options.filter(opt => opt && opt.trim() !== "");
                 
                 return `
                     <div class="space-y-3">
@@ -2460,14 +2462,17 @@
                         </div>
 
                         <div class="grid grid-cols-1 gap-3">
-                            ${question.options.filter(opt => opt && opt.trim() !== "").map((option, idx) => {
+                            ${validOptions.map((option, idx) => {
+                                // UBAH: cek berdasarkan teks TETAP dilakukan untuk menentukan status "checked",
+                                // tapi value checkbox sekarang berupa INDEX, bukan teks opsi.
                                 const isChecked = selectedOptions.includes(option);
                                 return `
                                     <label class="group flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 
                                         ${isChecked ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-gray-200 bg-white hover:border-gray-400'}">
                                         
                                         <div class="flex items-center justify-center flex-shrink-0">
-                                            <input type="checkbox" value="${option.replace(/"/g, '&quot;')}" 
+                                            <input type="checkbox" value="${idx}" 
+                                                data-question-index="${currentQuestionIndex}"
                                                 ${isChecked ? 'checked' : ''}
                                                 onchange="saveComplexAnswer(this)"
                                                 class="w-6 h-6 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer">
@@ -2592,10 +2597,17 @@
             }
 
             function saveComplexAnswer(checkbox) {
-                const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
-                const selected = Array.from(checkboxes).map(cb => cb.value);
+                const checkboxes = document.querySelectorAll(
+                    `#questionContainer input[type="checkbox"][data-question-index="${currentQuestionIndex}"]:checked`
+                );
+
+                const currentQuestion = examQuestions[currentQuestionIndex];
+                const validOptions = currentQuestion.options.filter(opt => opt && opt.trim() !== "");
+
+                const selected = Array.from(checkboxes).map(cb => validOptions[parseInt(cb.value, 10)]);
+
                 studentAnswers[currentQuestionIndex] = selected;
-                const encoded = JSON.stringify(studentAnswers); // ← Stringify SEKALI
+                const encoded = JSON.stringify(studentAnswers);
                 sessionStorage.setItem('studentAnswers', encoded);
                 localStorage.setItem('studentAnswers', encoded);
                 renderQuestionNav();
