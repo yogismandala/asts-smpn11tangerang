@@ -2655,12 +2655,20 @@
                 }).join('');
             }
 
+            function scrollQuestionToTop() {
+                const container = document.getElementById('questionContainer');
+                if (container) {
+                    container.scrollIntoView({ behavior: 'instant', block: 'start' });
+                }
+            }
+
             function goToQuestion(index) {
                 currentQuestionIndex = index;
                 sessionStorage.setItem('currentQuestionIndex', currentQuestionIndex.toString());
                 renderQuestion();
                 renderQuestionNav();
                 renderNavigationButtons();
+                scrollQuestionToTop();
             }
 
             function previousQuestion() {
@@ -2670,6 +2678,7 @@
                     renderQuestion();
                     renderQuestionNav();
                     renderNavigationButtons();
+                    scrollQuestionToTop();
                 }
             }
 
@@ -2680,6 +2689,7 @@
                     renderQuestion();
                     renderQuestionNav();
                     renderNavigationButtons();
+                    scrollQuestionToTop();
                 }
             }
 
@@ -3474,6 +3484,11 @@
                 else if (section === 'questions') renderQuestionsSection();
                 else if (section === 'settings') renderSettingsSection();
                 else if (section === 'schedule') renderScheduleSection();
+                
+                const adminContent = document.getElementById('adminContent');
+                if (adminContent) {
+                    adminContent.scrollIntoView({ behavior: 'instant', block: 'start' });
+                }
             }
 
             function showGuruSection(section) {
@@ -3493,6 +3508,11 @@
                 
                 if (section === 'questions') {
                     renderQuestionsSection();
+                }
+                
+                const guruContent = document.getElementById('guruContent');
+                if (guruContent) {
+                    guruContent.scrollIntoView({ behavior: 'instant', block: 'start' });
                 }
             }
 
@@ -5680,7 +5700,7 @@
             const mathToolbarHandlers = {
                 sqrt: function () {
                     insertMathTemplate(this.quill, (sel) => {
-                        const latex = sel ? `\(\sqrt{${sel}}\)` : `\(\sqrt{}\)`;
+                        const latex = sel ? `\\(\\sqrt{${sel}}\\)` : `\\(\\sqrt{}\\)`;
                         return { latex, cursorOffset: sel ? latex.length : latex.length - 2 };
                     });
                 },
@@ -5690,7 +5710,7 @@
                 },
                 fraction: function () {
                     insertMathTemplate(this.quill, (sel) => {
-                        const latex = sel ? `\(\frac{${sel}}{}\)` : `\(\frac{}{}\)`;
+                        const latex = sel ? `\\(\\frac{${sel}}{}\\)` : `\\(\\frac{}{}\\)`;
                         return { latex, cursorOffset: latex.length - 3 };
                     });
                 },
